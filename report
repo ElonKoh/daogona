@@ -1,0 +1,1775 @@
+# imports
+import pandas as pd
+import numpy as np
+import numpy.random as rd
+import matplotlib.pyplot as plt
+import math as m
+from scipy.stats import t
+Dataset 1 steam_games.csv
+In [2]:
+# understanding the raw data (2019/2020 updated dataset)
+steam_raw = pd.read_csv('steam_games.csv')
+steam_raw.info()
+steam_raw.head()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 40833 entries, 0 to 40832
+Data columns (total 20 columns):
+ #   Column                    Non-Null Count  Dtype  
+---  ------                    --------------  -----  
+ 0   url                       40833 non-null  object 
+ 1   types                     40831 non-null  object 
+ 2   name                      40817 non-null  object 
+ 3   desc_snippet              27612 non-null  object 
+ 4   recent_reviews            2706 non-null   object 
+ 5   all_reviews               28470 non-null  object 
+ 6   release_date              37654 non-null  object 
+ 7   developer                 40490 non-null  object 
+ 8   publisher                 35733 non-null  object 
+ 9   popular_tags              37888 non-null  object 
+ 10  game_details              40313 non-null  object 
+ 11  languages                 40797 non-null  object 
+ 12  achievements              12194 non-null  float64
+ 13  genre                     40395 non-null  object 
+ 14  game_description          37920 non-null  object 
+ 15  mature_content            2897 non-null   object 
+ 16  minimum_requirements      21069 non-null  object 
+ 17  recommended_requirements  21075 non-null  object 
+ 18  original_price            35522 non-null  object 
+ 19  discount_price            14543 non-null  object 
+dtypes: float64(1), object(19)
+memory usage: 6.2+ MB
+Out[2]:
+url	types	name	desc_snippet	recent_reviews	all_reviews	release_date	developer	publisher	popular_tags	game_details	languages	achievements	genre	game_description	mature_content	minimum_requirements	recommended_requirements	original_price	discount_price
+0	https://store.steampowered.com/app/379720/DOOM/	app	DOOM	Now includes all three premium DLC packs (Unto...	Very Positive,(554),- 89% of the 554 user revi...	Very Positive,(42,550),- 92% of the 42,550 use...	May 12, 2016	id Software	Bethesda Softworks,Bethesda Softworks	FPS,Gore,Action,Demons,Shooter,First-Person,Gr...	Single-player,Multi-player,Co-op,Steam Achieve...	English,French,Italian,German,Spanish - Spain,...	54.0	Action	About This Game Developed by id software, the...	NaN	Minimum:,OS:,Windows 7/8.1/10 (64-bit versions...	Recommended:,OS:,Windows 7/8.1/10 (64-bit vers...	$19.99	$14.99
+1	https://store.steampowered.com/app/578080/PLAY...	app	PLAYERUNKNOWN'S BATTLEGROUNDS	PLAYERUNKNOWN'S BATTLEGROUNDS is a battle roya...	Mixed,(6,214),- 49% of the 6,214 user reviews ...	Mixed,(836,608),- 49% of the 836,608 user revi...	Dec 21, 2017	PUBG Corporation	PUBG Corporation,PUBG Corporation	Survival,Shooter,Multiplayer,Battle Royale,PvP...	Multi-player,Online Multi-Player,Stats	English,Korean,Simplified Chinese,French,Germa...	37.0	Action,Adventure,Massively Multiplayer	About This Game PLAYERUNKNOWN'S BATTLEGROUND...	Mature Content Description The developers de...	Minimum:,Requires a 64-bit processor and opera...	Recommended:,Requires a 64-bit processor and o...	$29.99	NaN
+2	https://store.steampowered.com/app/637090/BATT...	app	BATTLETECH	Take command of your own mercenary outfit of '...	Mixed,(166),- 54% of the 166 user reviews in t...	Mostly Positive,(7,030),- 71% of the 7,030 use...	Apr 24, 2018	Harebrained Schemes	Paradox Interactive,Paradox Interactive	Mechs,Strategy,Turn-Based,Turn-Based Tactics,S...	Single-player,Multi-player,Online Multi-Player...	English,French,German,Russian	128.0	Action,Adventure,Strategy	About This Game From original BATTLETECH/Mec...	NaN	Minimum:,Requires a 64-bit processor and opera...	Recommended:,Requires a 64-bit processor and o...	$39.99	NaN
+3	https://store.steampowered.com/app/221100/DayZ/	app	DayZ	The post-soviet country of Chernarus is struck...	Mixed,(932),- 57% of the 932 user reviews in t...	Mixed,(167,115),- 61% of the 167,115 user revi...	Dec 13, 2018	Bohemia Interactive	Bohemia Interactive,Bohemia Interactive	Survival,Zombies,Open World,Multiplayer,PvP,Ma...	Multi-player,Online Multi-Player,Steam Worksho...	English,French,Italian,German,Spanish - Spain,...	NaN	Action,Adventure,Massively Multiplayer	About This Game The post-soviet country of Ch...	NaN	Minimum:,OS:,Windows 7/8.1 64-bit,Processor:,I...	Recommended:,OS:,Windows 10 64-bit,Processor:,...	$44.99	NaN
+4	https://store.steampowered.com/app/8500/EVE_On...	app	EVE Online	EVE Online is a community-driven spaceship MMO...	Mixed,(287),- 54% of the 287 user reviews in t...	Mostly Positive,(11,481),- 74% of the 11,481 u...	May 6, 2003	CCP	CCP,CCP	Space,Massively Multiplayer,Sci-fi,Sandbox,MMO...	Multi-player,Online Multi-Player,MMO,Co-op,Onl...	English,German,Russian,French	NaN	Action,Free to Play,Massively Multiplayer,RPG,...	About This Game	NaN	Minimum:,OS:,Windows 7,Processor:,Intel Dual C...	Recommended:,OS:,Windows 10,Processor:,Intel i...	Free	NaN
+In [3]:
+# standardizing names column to be entirely in lower case 
+steam_raw['name'] = steam_raw['name'].str.lower()
+Dataset 2 twitch_game_data.csv
+In [4]:
+# understanding the raw data (2016-2021 dataset)
+twitch_raw = pd.read_csv('twitch_game_data.csv')
+twitch_raw.info()
+twitch_raw.head()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 13800 entries, 0 to 13799
+Data columns (total 12 columns):
+ #   Column            Non-Null Count  Dtype  
+---  ------            --------------  -----  
+ 0   Rank              13800 non-null  int64  
+ 1   Game              13799 non-null  object 
+ 2   Month             13800 non-null  int64  
+ 3   Year              13800 non-null  int64  
+ 4   Hours_watched     13800 non-null  int64  
+ 5   Hours_Streamed    13800 non-null  object 
+ 6   Peak_viewers      13800 non-null  int64  
+ 7   Peak_channels     13800 non-null  int64  
+ 8   Streamers         13800 non-null  int64  
+ 9   Avg_viewers       13800 non-null  int64  
+ 10  Avg_channels      13800 non-null  int64  
+ 11  Avg_viewer_ratio  13800 non-null  float64
+dtypes: float64(1), int64(9), object(2)
+memory usage: 1.3+ MB
+Out[4]:
+Rank	Game	Month	Year	Hours_watched	Hours_Streamed	Peak_viewers	Peak_channels	Streamers	Avg_viewers	Avg_channels	Avg_viewer_ratio
+0	1	League of Legends	1	2016	94377226	1362044 hours	530270	2903	129172	127021	1833	69.29
+1	2	Counter-Strike: Global Offensive	1	2016	47832863	830105 hours	372654	2197	120849	64378	1117	57.62
+2	3	Dota 2	1	2016	45185893	433397 hours	315083	1100	44074	60815	583	104.26
+3	4	Hearthstone	1	2016	39936159	235903 hours	131357	517	36170	53749	317	169.29
+4	5	Call of Duty: Black Ops III	1	2016	16153057	1151578 hours	71639	3620	214054	21740	1549	14.03
+In [5]:
+# renaming 'Game' column for dataset merging purposes
+twitch_raw.rename(columns = {'Game':'name'},inplace=True) 
+
+# standardizing names column to be entirely in lower case 
+twitch_raw['name'] = twitch_raw['name'].str.lower()
+Twitch + Game Dataframe
+In [6]:
+# merging twitch_raw with steam_raw by name column, dropping rows with steam games not on twitch (will not be necessary)
+data_raw = pd.merge(steam_raw,twitch_raw,on='name')
+
+# getting rid of abnormal NA rows (type != (app | bundle))
+data_raw = data_raw.dropna(subset=['types'])
+data_raw = data_raw.dropna(subset=['name'])
+
+
+# extracting appid from url
+data_raw['APPID'] = data_raw['url'].str.split('/').apply(lambda x : int(x[4]))
+
+# dropping unnecessary columns
+data_raw = data_raw.drop(columns = ["Avg_viewer_ratio", "game_description",
+                            "Streamers","discount_price","original_price",
+                            "recent_reviews","desc_snippet","types","url"])
+print(data_raw.shape)
+data_raw
+(4956, 23)
+Out[6]:
+name	all_reviews	release_date	developer	publisher	popular_tags	game_details	languages	achievements	genre	...	Rank	Month	Year	Hours_watched	Hours_Streamed	Peak_viewers	Peak_channels	Avg_viewers	Avg_channels	APPID
+0	doom	Very Positive,(42,550),- 92% of the 42,550 use...	May 12, 2016	id Software	Bethesda Softworks,Bethesda Softworks	FPS,Gore,Action,Demons,Shooter,First-Person,Gr...	Single-player,Multi-player,Co-op,Steam Achieve...	English,French,Italian,German,Spanish - Spain,...	54.0	Action	...	52	4	2016	806087	19742 hours	36212	352	1121	27	379720
+1	doom	Very Positive,(42,550),- 92% of the 42,550 use...	May 12, 2016	id Software	Bethesda Softworks,Bethesda Softworks	FPS,Gore,Action,Demons,Shooter,First-Person,Gr...	Single-player,Multi-player,Co-op,Steam Achieve...	English,French,Italian,German,Spanish - Spain,...	54.0	Action	...	19	5	2016	4320660	191421 hours	93713	1704	5815	257	379720
+2	doom	Very Positive,(42,550),- 92% of the 42,550 use...	May 12, 2016	id Software	Bethesda Softworks,Bethesda Softworks	FPS,Gore,Action,Demons,Shooter,First-Person,Gr...	Single-player,Multi-player,Co-op,Steam Achieve...	English,French,Italian,German,Spanish - Spain,...	54.0	Action	...	78	6	2016	359488	55602 hours	11929	219	499	77	379720
+3	doom	Very Positive,(42,550),- 92% of the 42,550 use...	May 12, 2016	id Software	Bethesda Softworks,Bethesda Softworks	FPS,Gore,Action,Demons,Shooter,First-Person,Gr...	Single-player,Multi-player,Co-op,Steam Achieve...	English,French,Italian,German,Spanish - Spain,...	54.0	Action	...	169	7	2016	184984	33331 hours	4564	113	248	44	379720
+4	doom	Very Positive,(42,550),- 92% of the 42,550 use...	May 12, 2016	id Software	Bethesda Softworks,Bethesda Softworks	FPS,Gore,Action,Demons,Shooter,First-Person,Gr...	Single-player,Multi-player,Co-op,Steam Achieve...	English,French,Italian,German,Spanish - Spain,...	54.0	Action	...	144	8	2016	174962	25609 hours	3158	85	235	34	379720
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+4967	last oasis	NaN	Sep 3, 2019	Donkey Crew	Donkey Crew,Donkey Crew	Early Access,Massively Multiplayer,Indie,Early...	Multi-player,Online Multi-Player,MMO	English	NaN	Action,Indie,Massively Multiplayer,RPG,Early A...	...	114	5	2020	1180995	44382 hours	8458	154	1589	59	903950
+4968	starbase	NaN	2019	Frozenbyte	Frozenbyte,Frozenbyte	Early Access,Massively Multiplayer,Simulation,...	Online Multi-Player,MMO	English	NaN	Action,Massively Multiplayer,Simulation,Early ...	...	141	8	2021	1175752	29723 hours	27604	115	1582	40	454120
+4969	darksiders genesis	NaN	2019	Airship Syndicate	THQ Nordic,THQ Nordic	Gore,RPG,Action,Adventure,Action RPG,Hack and ...	Single-player,Multi-player,Online Multi-Player...	English,French,Italian,German,Spanish - Spain,...	NaN	Action,Adventure,RPG	...	118	12	2019	634741	15600 hours	25443	265	854	20	710920
+4970	indivisible	NaN	Early 2019	Lab Zero Games	505 Games,505 Games	Action,RPG,Indie,Female Protagonist,Hand-drawn...	Single-player,Full controller support	English,French,Italian,German,Spanish - Spain,...	NaN	Action,Indie,RPG	...	106	10	2019	626849	17422 hours	19248	197	843	23	421170
+4971	heave ho	NaN	NaN	Le Cartel	Devolver Digital,Devolver Digital	Adventure,Indie	Single-player,Local Multi-Player,Local Co-op,S...	English,French,German,Spanish - Spain,Japanese...	NaN	Adventure,Indie	...	198	11	2019	234421	824 hours	35284	11	326	1	905340
+4956 rows × 23 columns
+
+DATA CLEANING OF MERGED "DATA"
+In [7]:
+## data cleaning
+
+# reordering columns
+cols = list(data_raw.columns)
+cols = cols[-1:] + cols[0:-1]
+data = data_raw[cols]
+
+# typecast hours streamed column to int
+data.loc[:,['Hours_Streamed']] = data['Hours_Streamed'].str[:-6].astype(int)
+
+# strsplit genre, game_details, popular_tags and languages
+data.loc[:,['genre']] = data['genre'].str.split(pat=',')
+data.loc[:,['game_details']] = data['game_details'].str.split(pat=',')
+data.loc[:,['popular_tags']] = data['popular_tags'].str.split(pat=',')
+data.loc[:,['languages']] = data['languages'].str.split(pat=',')
+
+# extracting review count
+def reviewindex(x):
+    if type(x) == list:
+        y = str(x)
+        z = y.replace(",", "")
+        f = z[3:-3]
+        if f == '':
+            return "no_longer_on_sale"
+        else:
+            return int(f)
+    else:
+        return x
+
+data['review_count'] = data['all_reviews'].str.findall(r'\(.*?\)')
+data['review_count'] = data['review_count'].map(reviewindex)
+
+
+# extracting OS capabilities
+data['OS'] = data['recommended_requirements'].str.findall('OS:.+?(?=,)')
+
+# extracting year from release_date
+def dateindex(x):
+    if type(x) == float:
+        return x
+    else:
+        listnum = str([int(i) for i in x.split() if i.isdigit()])
+    if listnum[1:-1] == '':
+        return "incomplete_data"
+    else:
+        return int(listnum[1:-1])
+
+# changing mature content to categorical
+def replacer(x):
+    if pd.isnull(x):
+        return False
+    else:
+        return True
+
+data['release_year'] = data['release_date'].map(dateindex)
+
+
+# re-ordering columns
+data = data.drop(columns = ["all_reviews", "recommended_requirements", "minimum_requirements"])
+cols = list(data.columns)
+cols = cols[:4] + cols[-3:] + cols[4:-3]
+data = data[cols]
+
+# adding date column for dataset merging purposes
+data['Date'] = pd.to_datetime(data['Year'].astype(str) + data['Month'].astype(str), format='%Y%m')
+data['Date'] = data['Date'].dt.date.apply(lambda x: x.strftime('%Y-%m'))
+cols = list(data.columns)
+cols = cols[:13] + cols[-1:] + cols[13:-1]
+data = data[cols]
+
+data["mature_content"] = data["mature_content"].map(replacer)
+
+#resetting index
+data = data.sort_values(["Year","Month","Rank"],ascending = True)
+data = data.reset_index(drop=True)
+
+
+# def command to index list columns
+def listcontains(dataset,col,value):
+    colnum = dataset.columns.get_loc(col)
+    seriesbool = []
+    for i in range(len(dataset)):
+        if type(dataset.iloc[i,colnum]) == float: #check if is list, if not, return false
+            seriesbool.append(False)
+        else:
+            inside = False
+            for j in dataset.iloc[i,colnum]: #checking ele in list 
+                j = str(j)
+                if value in j: #if ele matches value, return true and break
+                    seriesbool.append(True)
+                    inside = True
+                    break
+                else: #if ele doesnt match value, pass
+                    continue
+            if inside == False:
+                seriesbool.append(False) #return false when all ele is checked and non match
+    return pd.Series(seriesbool)
+    
+
+        
+# splitting by year
+data_2016 = data[data["Year"] == 2016].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+data_2017 = data[data["Year"] == 2017].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+data_2018 = data[data["Year"] == 2018].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+data_2019 = data[data["Year"] == 2019].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+data_2020 = data[data["Year"] == 2020].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+data_2021 = data[data["Year"] == 2021].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+
+data
+test = data[listcontains(data,"languages","German")].reset_index(drop=True)
+test = test[listcontains(test,"genre","Action")]
+test
+#data[listcontains(data,"popular_tags","FPS")]
+#data[listcontains(data,"game_details","Online")]
+#data[listcontains(data,"genre","Indie")]
+Out[7]:
+APPID	name	release_date	developer	review_count	OS	release_year	publisher	popular_tags	game_details	...	mature_content	Rank	Month	Year	Hours_watched	Hours_Streamed	Peak_viewers	Peak_channels	Avg_viewers	Avg_channels
+0	730	counter-strike: global offensive	Aug 21, 2012	Valve,Hidden Path Entertainment	3094223	NaN	2012	Valve,Valve	[FPS, Shooter, Multiplayer, Competitive, Actio...	[Multi-player, Steam Achievements, Full contro...	...	True	2	1	2016	47832863	830105	372654	2197	64378	1117
+1	570	dota 2	Jul 9, 2013	Valve	1015621	NaN	2013	Valve,Valve	[Free to Play, MOBA, Multiplayer, Strategy, e-...	[Multi-player, Co-op, Steam Trading Cards, Ste...	...	False	3	1	2016	45185893	433397	315083	1100	60815	583
+2	271590	grand theft auto v	Apr 14, 2015	Rockstar North	407706	[OS:,Windows 10 64 Bit]	2015	Rockstar Games,Rockstar Games	[Open World, Action, Multiplayer, Third Person...	[Single-player, Multi-player, Steam Achievemen...	...	True	19	1	2016	4014296	407172	32724	1197	5402	548
+3	107410	arma 3	Sep 12, 2013	Bohemia Interactive	81705	[OS:,Windows 7 / 8 / 10 (64bit)]	2013	Bohemia Interactive,Bohemia Interactive	[Military, Simulation, Multiplayer, Realistic,...	[Single-player, Multi-player, Online Multi-Pla...	...	False	26	1	2016	2542838	86219	32132	275	3422	116
+4	221100	dayz	Dec 13, 2018	Bohemia Interactive	167115	[OS:,Windows 10 64-bit]	2018	Bohemia Interactive,Bohemia Interactive	[Survival, Zombies, Open World, Multiplayer, P...	[Multi-player, Online Multi-Player, Steam Work...	...	False	27	1	2016	2321012	71715	30208	208	3123	96
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+4053	582010	monster hunter: world	Aug 9, 2018	CAPCOM Co., Ltd.	62030	[OS:,WINDOWS® 7]	2018	CAPCOM Co., Ltd.,CAPCOM Co., Ltd.	[Hunting, Co-op, Multiplayer, Action, Open Wor...	[Single-player, Multi-player, Co-op, Steam Ach...	...	False	178	9	2021	816891	88592	5445	204	1136	123
+4054	753640	outer wilds	TBD	Mobius Digital	NaN	[]	incomplete_data	Annapurna Interactive,Annapurna Interactive	[Adventure, Action, Exploration, Space, Open W...	[Single-player, Steam Achievements, Full contr...	...	False	180	9	2021	811907	12328	32318	243	1129	17
+4055	976730	halo: the master chief collection	Coming Soon	343 Industries,Splash Damage,Ruffian Games	NaN	[]	incomplete_data	Xbox Game Studios,Xbox Game Studios	[Masterpiece, Great Soundtrack, FPS, Classic, ...	[Single-player, Online Multi-Player, Online Co...	...	True	185	9	2021	802745	108974	8919	382	1116	151
+4056	242760	the forest	Apr 30, 2018	Endnight Games Ltd	101595	[OS:,Windows 7]	2018	Endnight Games Ltd,Endnight Games Ltd	[Survival, Open World, Horror, Crafting, Adven...	[Single-player, Multi-player, Co-op, Partial C...	...	False	193	9	2021	746891	64193	22736	188	1038	89
+4058	236390	war thunder	Aug 15, 2013	Gaijin Entertainment	107537	[OS:,Windows 7 64bit /Vista 64bit /8 64bit /10...	2013	Gaijin Entertainment,Gaijin Entertainment	[Free to Play, World War II, Multiplayer, Simu...	[Single-player, MMO, Co-op, Cross-Platform Mul...	...	False	197	9	2021	723003	75333	8659	225	1005	104
+2553 rows × 24 columns
+
+Dataset 3 Valve_Player_Data.csv
+In [8]:
+# understanding the raw data (2012 to 2021 dataset)
+user_raw = pd.read_csv('Valve_Player_Data.csv')
+user_raw.info()
+user_raw.head()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 5271 entries, 0 to 5270
+Data columns (total 8 columns):
+ #   Column        Non-Null Count  Dtype  
+---  ------        --------------  -----  
+ 0   Month_Year    5271 non-null   object 
+ 1   Avg_players   5271 non-null   float64
+ 2   Gain          5173 non-null   float64
+ 3   Percent_Gain  5173 non-null   object 
+ 4   Peak_Players  5271 non-null   int64  
+ 5   URL           5271 non-null   object 
+ 6   Date          5271 non-null   object 
+ 7   Game_Name     5271 non-null   object 
+dtypes: float64(2), int64(1), object(5)
+memory usage: 329.6+ KB
+Out[8]:
+Month_Year	Avg_players	Gain	Percent_Gain	Peak_Players	URL	Date	Game_Name
+0	September 2021	512350.92	268.96	+0.05%	942519	https://steamcharts.com/app/730	2021-09-01	Counter Strike: Global Offensive
+1	August 2021	512081.96	6014.60	+1.19%	802544	https://steamcharts.com/app/730	2021-08-01	Counter Strike: Global Offensive
+2	July 2021	506067.36	-43279.72	-7.88%	763523	https://steamcharts.com/app/730	2021-07-01	Counter Strike: Global Offensive
+3	June 2021	549347.08	-110541.81	-16.75%	929940	https://steamcharts.com/app/730	2021-06-01	Counter Strike: Global Offensive
+4	May 2021	659888.89	-63457.63	-8.77%	1087197	https://steamcharts.com/app/730	2021-05-01	Counter Strike: Global Offensive
+In [9]:
+# creating APPID column for dataset merging purposes
+user_raw['APPID'] = user_raw['URL'].str.split('/').apply(lambda x : int(x[-1]))
+user_raw['APPID']
+
+# formatting date column for dataset merging purposes
+user_raw['Date'] = pd.to_datetime(user_raw['Date'])
+user_raw['Date'] = user_raw['Date'].dt.date.apply(lambda x: x.strftime('%Y-%m'))
+Twitch + Game + User Dataframe
+In [10]:
+df = pd.merge(data, user_raw, on = ['APPID','Date'])
+
+# re-ordering columns
+df = df.drop(columns = ["Game_Name", "URL","Month_Year"])
+cols = list(df.columns)
+#cols = cols[:-5] + cols[2:3] + cols[-5:]
+df = df[cols]
+
+# splitting by year
+df_2016 = df[df["Year"] == 2016].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2017 = df[df["Year"] == 2017].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2018 = df[df["Year"] == 2018].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2019 = df[df["Year"] == 2019].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2020 = df[df["Year"] == 2020].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2021 = df[df["Year"] == 2021].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+
+# 50 of the top 100 played games are also streaming on twitch.
+# We will be using these 50 games for analysis
+
+#df_2017
+#df_2017[listcontains(df_2017,"languages","German")]
+#df[listcontains(df,"popular_tags","FPS")]
+#df[listcontains(df,"game_details","Online")]
+#df[listcontains(df,"genre","Indie")]
+#nat_data_frame = df["mature_content"]== True
+#df[nat_data_frame]
+
+df.sort_values(["APPID","Date"],ascending = True).iloc[:,12:]
+df_list = [df_2016,df_2017,df_2018,df_2019,df_2020,df_2021]
+df
+Out[10]:
+APPID	name	release_date	developer	review_count	OS	release_year	publisher	popular_tags	game_details	...	Hours_watched	Hours_Streamed	Peak_viewers	Peak_channels	Avg_viewers	Avg_channels	Avg_players	Gain	Percent_Gain	Peak_Players
+0	730	counter-strike: global offensive	Aug 21, 2012	Valve,Hidden Path Entertainment	3094223	NaN	2012	Valve,Valve	[FPS, Shooter, Multiplayer, Competitive, Actio...	[Multi-player, Steam Achievements, Full contro...	...	47832863	830105	372654	2197	64378	1117	365371.09	-12076.02	-3.20%	667432
+1	570	dota 2	Jul 9, 2013	Valve	1015621	NaN	2013	Valve,Valve	[Free to Play, MOBA, Multiplayer, Strategy, e-...	[Multi-player, Co-op, Steam Trading Cards, Ste...	...	45185893	433397	315083	1100	60815	583	612174.78	38830.53	+6.77%	1067949
+2	271590	grand theft auto v	Apr 14, 2015	Rockstar North	407706	[OS:,Windows 10 64 Bit]	2015	Rockstar Games,Rockstar Games	[Open World, Action, Multiplayer, Third Person...	[Single-player, Multi-player, Steam Achievemen...	...	4014296	407172	32724	1197	5402	548	46993.33	3118.61	+7.11%	93726
+3	107410	arma 3	Sep 12, 2013	Bohemia Interactive	81705	[OS:,Windows 7 / 8 / 10 (64bit)]	2013	Bohemia Interactive,Bohemia Interactive	[Military, Simulation, Multiplayer, Realistic,...	[Single-player, Multi-player, Online Multi-Pla...	...	2542838	86219	32132	275	3422	116	22559.44	3797.34	+20.24%	43922
+4	221100	dayz	Dec 13, 2018	Bohemia Interactive	167115	[OS:,Windows 10 64-bit]	2018	Bohemia Interactive,Bohemia Interactive	[Survival, Zombies, Open World, Multiplayer, P...	[Multi-player, Online Multi-Player, Steam Work...	...	2321012	71715	30208	208	3123	96	8329.42	888.95	+11.95%	16423
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+1961	322330	don't starve together	Apr 21, 2016	Klei Entertainment	70020	NaN	2016	Klei Entertainment,Klei Entertainment	[Survival, Multiplayer, Co-op, Open World, Adv...	[Single-player, Multi-player, Co-op, Cross-Pla...	...	935691	39507	7384	116	1301	54	15029.51	-2837.58	-15.88%	33365
+1962	646570	slay the spire	Jan 23, 2019	Mega Crit Games	25172	NaN	2019	Mega Crit Games,Mega Crit Games	[Card Game, Rogue-like, Turn-Based, Strategy, ...	[Single-player, Steam Achievements, Full contr...	...	850634	18420	26250	56	1183	25	6678.51	-856.87	-11.37%	9160
+1963	582010	monster hunter: world	Aug 9, 2018	CAPCOM Co., Ltd.	62030	[OS:,WINDOWS® 7]	2018	CAPCOM Co., Ltd.,CAPCOM Co., Ltd.	[Hunting, Co-op, Multiplayer, Action, Open Wor...	[Single-player, Multi-player, Co-op, Steam Ach...	...	816891	88592	5445	204	1136	123	15486.47	-3537.55	-18.60%	31712
+1964	236390	war thunder	Aug 15, 2013	Gaijin Entertainment	107537	[OS:,Windows 7 64bit /Vista 64bit /8 64bit /10...	2013	Gaijin Entertainment,Gaijin Entertainment	[Free to Play, World War II, Multiplayer, Simu...	[Single-player, MMO, Co-op, Cross-Platform Mul...	...	723003	75333	8659	225	1005	104	25179.81	593.23	+2.41%	43439
+1965	4000	garry's mod	Nov 29, 2006	Facepunch Studios	310394	[OS:,Windows® 7/8/8.1/10, OS:,Latest OS X vers...	2006	Valve,Valve	[Sandbox, Multiplayer, Funny, Moddable, Buildi...	[Single-player, Multi-player, Co-op, Cross-Pla...	...	712712	17637	88018	80	991	24	21523.45	-5876.05	-21.45%	39242
+1966 rows × 28 columns
+
+FUNCTION TO FIND AND COUNT ALL UNIQUE GENRES
+In [11]:
+# function to find all unique categories of genre
+def Listunique (dataframe, column):
+    uniq = {}
+    for row in dataframe[column]: # 
+        for item in row:
+            if item in uniq:
+                uniq[item] = uniq.get(item) + 1
+            else:
+                uniq[item] = 1
+    return uniq
+
+Listunique(df,"genre")
+Out[11]:
+{'Action': 1222,
+ 'Free to Play': 503,
+ 'Strategy': 585,
+ 'Adventure': 717,
+ 'Simulation': 803,
+ 'Massively Multiplayer': 581,
+ 'Indie': 775,
+ 'RPG': 578,
+ 'Early Access': 163,
+ 'Casual': 89,
+ 'Sports': 60}
+GETTING SALES FIGURE FROM REVIEW COUNT
+In [12]:
+# getting sales figure using the formula (36 x review)
+df2 = df
+df2['total_sales'] = df2['review_count'].apply(lambda x: x*36)
+VISUALIZATIONS
+ELON BUBBLE CHART + achievements
+In [13]:
+# BUBBLE CHART
+# NEED: GAME/SALES/TOTAL HOURS WATCHED/TOTAL HOURS STREAMED/GENRE
+
+# getting total sum of avg viewers, players
+subset_d = {}
+
+for i in range(len(df_list)):
+    k = df_list[i].groupby(["APPID","name"]).sum()
+    k = k[["Avg_viewers","Avg_players"]]
+    df3 = pd.merge(k, df2, on=["APPID","name"])
+    df3 = df3.drop_duplicates(subset = "APPID",keep = "first")
+    df4 = df3[["APPID","name","Avg_viewers_x","Avg_players_x","genre","mature_content","OS","total_sales"]]
+    df4 = df4[~df4["total_sales"].isna()].reset_index(drop=True)
+    years = [2016,2017,2018,2019,2020,2021]
+    j = years[i]
+    subset_d["subset" + str(j)] = df4
+    
+#subset_2020 = df_2020.groupby(["APPID","name"]).sum()
+#subset_2020 = subset_2020[["Avg_viewers","Avg_players"]]
+#df3 = pd.merge(subset_2020, df2, on=["APPID","name"])
+
+#df3 = df3.drop_duplicates(subset = "APPID",keep = "first")
+
+#df4 = df3[["APPID","name","Avg_viewers_x","Avg_players_x","genre","mature_content","OS","total_sales"]]
+#df4 = df4[~df4["total_sales"].isna()].reset_index(drop=True)
+
+#subset_d["subset2018"]
+In [14]:
+import plotly.express as px
+
+figure_d = {}
+for i in subset_d:
+    df1 = subset_d[i]
+    figure_d[i] = px.scatter(data_frame=df1, x="Avg_viewers_x", y="Avg_players_x",size="total_sales",color="mature_content",
+                 hover_name="name", log_x=True, size_max=60, labels={
+                     "Avg_players_x": "Avg Players for the year",
+                     "Avg_viewers_x": "Avg Viewers on twitch for the year",
+                     "mature_content": "Contains mature content"
+                 },title = i)
+
+for i in figure_d:
+    figure_d[i].show()
+    
+
+## bubble charts below (not showing up in html? not sure why)
+5
+1000
+2
+5
+10k
+2
+5
+100k
+2
+5
+1M
+0
+2M
+4M
+6M
+8M
+Contains mature content
+True
+False
+subset2016
+Avg Viewers on twitch for the year
+Avg Players for the year
+2
+5
+1000
+2
+5
+10k
+2
+5
+100k
+2
+5
+1M
+0
+1M
+2M
+3M
+4M
+5M
+6M
+7M
+Contains mature content
+True
+False
+subset2017
+Avg Viewers on twitch for the year
+Avg Players for the year
+2
+5
+1000
+2
+5
+10k
+2
+5
+100k
+2
+5
+1M
+0
+2M
+4M
+6M
+8M
+10M
+Contains mature content
+True
+False
+subset2018
+Avg Viewers on twitch for the year
+Avg Players for the year
+5
+1000
+2
+5
+10k
+2
+5
+100k
+2
+5
+1M
+0
+1M
+2M
+3M
+4M
+5M
+6M
+Contains mature content
+True
+False
+subset2019
+Avg Viewers on twitch for the year
+Avg Players for the year
+5
+1000
+2
+5
+10k
+2
+5
+100k
+2
+5
+1M
+2
+0
+2M
+4M
+6M
+8M
+Contains mature content
+True
+False
+subset2020
+Avg Viewers on twitch for the year
+Avg Players for the year
+1000
+2
+5
+10k
+2
+5
+100k
+2
+5
+1M
+2
+0
+1M
+2M
+3M
+4M
+5M
+6M
+7M
+Contains mature content
+True
+False
+subset2021
+Avg Viewers on twitch for the year
+Avg Players for the year
+In [15]:
+y = np.array([len(df[df["achievements"].isnull()]),len(df[~df["achievements"].isnull()])])
+labels = ["no achievements","has achievements"]
+myexplode = [0.2, 0]
+plt.pie(y,labels = labels,explode=myexplode,autopct='%1.1f%%')
+plt.show() 
+
+ACHIEVEMENTS
+In [16]:
+#achievements and number of players
+dfac = df[["APPID","name","achievements","Date","Avg_players"]].reset_index(drop=True)
+q1 = dfac["achievements"].quantile(.25)
+q2 = dfac["achievements"].quantile(.50)
+q3 = dfac["achievements"].quantile(.75)
+q4 = dfac["achievements"].quantile(1.00)
+dfac = dfac[~dfac["achievements"].isna()].reset_index(drop=True)
+
+def classify(x):
+    if x < q1:
+        return "less than 40"
+    elif q1 <= x < q2:
+        return "between 40 and 67"
+    elif q2 <= x < q3:
+        return "between 67 and 120"
+    elif q3 <= x <= q4:
+        return "more than 120"
+
+dfac["achievements"] = dfac["achievements"].map(classify)
+
+
+test = dfac.groupby(["Date","achievements"]).sum().reset_index()
+test = test.drop(columns=["APPID"])
+test = test.pivot_table(values = "Avg_players", index='Date', columns='achievements')
+line_graph = test.plot.line()
+line_graph.set_xlabel("months through 2016-2021")
+line_graph.set_ylabel("average players")
+
+dfac40 = dfac[dfac["achievements"]=="less than 40"]
+dfac40[dfac40["Avg_players"] > 0.50e6] #pubg is the anomaly
+Out[16]:
+APPID	name	achievements	Date	Avg_players
+411	578080	playerunknown's battlegrounds	less than 40	2017-09	660192.74
+432	578080	playerunknown's battlegrounds	less than 40	2017-10	1086638.87
+454	578080	playerunknown's battlegrounds	less than 40	2017-11	1334170.09
+477	578080	playerunknown's battlegrounds	less than 40	2017-12	1436158.51
+501	578080	playerunknown's battlegrounds	less than 40	2018-01	1584886.77
+524	578080	playerunknown's battlegrounds	less than 40	2018-02	1391015.30
+552	578080	playerunknown's battlegrounds	less than 40	2018-03	1295408.59
+576	578080	playerunknown's battlegrounds	less than 40	2018-04	1107181.80
+600	578080	playerunknown's battlegrounds	less than 40	2018-05	876180.64
+624	578080	playerunknown's battlegrounds	less than 40	2018-06	800668.23
+646	578080	playerunknown's battlegrounds	less than 40	2018-07	688620.42
+670	578080	playerunknown's battlegrounds	less than 40	2018-08	619320.48
+695	578080	playerunknown's battlegrounds	less than 40	2018-09	542607.05
+
+In [17]:
+dfac_clean = dfac[dfac["APPID"]!=578080]
+test1 = dfac_clean.groupby(["Date","achievements"]).sum().reset_index()
+test1 = test1.drop(columns=["APPID"])
+test1 = test1.pivot_table(values = "Avg_players", index='Date', columns='achievements')
+line_graph = test1.plot.line()
+line_graph.set_xlabel("months through 2016-2021")
+line_graph.set_ylabel("average players")
+Out[17]:
+Text(0, 0.5, 'average players')
+
+WORD CLOUD ANALYSIS OF REVIEWS FOR SOME GAMES
+steam_reviews.csv
+In [18]:
+from os import path
+from PIL import Image
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+
+reviews_raw = pd.read_csv("steam_reviews.csv")
+reviews_raw["title"] = reviews_raw["title"].map(lambda x:x.lower())
+
+columns = list(reviews_raw.columns)
+columns[-1] = "name"
+reviews_raw.columns = columns
+
+reviews_raw["name"].unique()
+#reviews_raw[reviews_raw["name"]== "playerunknown's battlegrounds"]
+Out[18]:
+array(['expansion - hearts of iron iv: man the guns', 'dead by daylight',
+       'wargroove', 'wallpaper engine', 'factorio',
+       'insurgency: sandstorm', 'cold waters', 'tannenberg',
+       'pathfinder: kingmaker', 'monster hunter: world',
+       'divinity: original sin 2 - definitive edition',
+       'football manager 2019', "garry's mod", 'survivor pass: vikendi',
+       'moonlighter', 'terraria', 'god eater 3',
+       'sid meier’s civilization® vi', 'rocket league®',
+       'subnautica: below zero', "tom clancy's rainbow six® siege",
+       'astroneer', 'sid meier’s civilization® vi: rise and fall',
+       'kenshi', 'euro truck simulator 2', 'grand theft auto v',
+       'rimworld', 'nba 2k19', 'resident evil 2 / biohazard re:2',
+       'slay the spire', 'my time at portia', 'foundation', 'beat saber',
+       "sid meier's civilization® vi: gathering storm", 'stardew valley',
+       'farming simulator 19', "playerunknown's battlegrounds",
+       'overcooked! 2', "don't starve together", 'rust', 'subnautica',
+       'ace combat™ 7: skies unknown', 'left 4 dead 2',
+       'ark: survival evolved', 'battlefleet gothic: armada 2',
+       'the elder scrolls v: skyrim special edition', 'human: fall flat',
+       'warhammer 40,000: mechanicus'], dtype=object)
+In [19]:
+games = list(df["name"].unique())
+top50_reviews = reviews_raw[reviews_raw["name"].isin(games)].reset_index()
+top50_reviews["review"] = top50_reviews["review"].astype(str)
+test = top50_reviews[top50_reviews["name"] == "playerunknown's battlegrounds" ]
+test = test[test["recommendation"] == "Recommended"]
+test = " ".join(test["review"])
+
+
+wordcloud = WordCloud().generate(test)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.show()
+
+train.csv
+In [20]:
+reviews_raw2 = pd.read_csv("train.csv")
+reviews_raw2["title"] = reviews_raw2["title"].map(lambda x:x.lower())
+
+columns = list(reviews_raw2.columns)
+columns[1] = "name"
+columns[3] = "review"
+columns[-1] = "recommendation"
+reviews_raw2.columns = columns
+
+reviews_raw2
+reviews_raw2["name"].unique()
+Out[20]:
+array(["spooky's jump scare mansion", 'sakura clicker', 'warmode',
+       'fractured space', 'dota 2', 'path of exile', 'war thunder',
+       'ring of elysium', 'team fortress 2', 'yu-gi-oh! duel links',
+       'smite®', 'brawlhalla', 'world of tanks blitz',
+       'dcs world steam edition', 'heroes & generals',
+       'the elder scrolls®: legends™', 'trove', 'neverwinter',
+       'realm royale', 'planetside 2', 'realm of the mad god', 'elsword',
+       'thehunter classic', 'eternal card game', 'black squad',
+       'freestyle 2: street basketball', 'bless online',
+       'raceroom racing experience', 'fallout shelter',
+       'tactical monsters rumble arena', 'creativerse', 'dreadnought',
+       'infestation: the new z', 'shop heroes', 'robocraft',
+       'business tour - board game with online multiplayer',
+       'crusaders of the lost idols', 'adventurequest 3d',
+       'realm grinder', 'world of guns: gun disassembly',
+       'bloons td battles', 'cuisine royale', 'school of dragons',
+       'everquest ii'], dtype=object)
+In [21]:
+games = list(df["name"].unique())
+top50_reviews2 = reviews_raw2[reviews_raw2["name"].isin(games)].reset_index()
+
+top50_reviews2["review"] = top50_reviews2["review"].astype(str)
+test2 = top50_reviews2[top50_reviews2["name"] == "team fortress 2" ]
+test2 = test2[test2["recommendation"] == 1]
+test3 = " ".join(test2["review"])
+
+
+wordcloud = WordCloud().generate(test3)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.show()
+test2
+
+Out[21]:
+index	review_id	name	year	review	recommendation
+1583	3604	4068	team fortress 2	2018.0	This game was recommended to me by my brother ...	1
+1584	3605	4069	team fortress 2	2012.0	A game that will not only get you addicted to ...	1
+1585	3606	4070	team fortress 2	2013.0	This shooting game where cosmetics are more im...	1
+1586	3607	4071	team fortress 2	2016.0	This game can be played both casually or compe...	1
+1587	3608	4072	team fortress 2	2014.0	Hat Simulator 2: Hat harder, what can I say ab...	1
+...	...	...	...	...	...	...
+2057	4078	4542	team fortress 2	2015.0	Team Fortress 2 is one of the best games you c...	1
+2058	4079	4543	team fortress 2	2016.0	This is by far one of my all-time favorite gam...	1
+2059	4080	4544	team fortress 2	2017.0	this game is an absolute god amongst legends. ...	1
+2060	4081	4545	team fortress 2	2016.0	Where do I start with this?All the great revie...	1
+2061	4082	4546	team fortress 2	2018.0	This game is like that nostalgic thought back ...	1
+365 rows × 6 columns
+
+In [22]:
+games = list(df["name"].unique())
+top50_reviews2 = reviews_raw2[reviews_raw2["name"].isin(games)].reset_index()
+
+top50_reviews2["review"] = top50_reviews2["review"].astype(str)
+test2 = top50_reviews2[top50_reviews2["name"] == "dota 2" ]
+test2 = test2[test2["recommendation"] == 1]
+test3 = " ".join(test2["review"])
+
+
+wordcloud = WordCloud().generate(test3)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.show()
+test2
+
+Out[22]:
+index	review_id	name	year	review	recommendation
+0	1602	2066	dota 2	2014.0	[Hello skill floor, nice to meet youOh what's ...	1
+2	1604	2068	dota 2	2014.0	Dota.... Dota has its times where you play wit...	1
+4	1606	2070	dota 2	2016.0	I am Jose, i used to be believe that i was a c...	1
+5	1607	2071	dota 2	2012.0	It's a purgatory simulator based on the existe...	1
+6	1608	2072	dota 2	2014.0	Don't bother spending hundreds on other langua...	1
+...	...	...	...	...	...	...
+394	1996	2460	dota 2	2014.0	I have been using several Russian language sim...	1
+401	2003	2467	dota 2	2014.0	Extremly rage inducing game, recommended only ...	1
+402	2004	2468	dota 2	2014.0	Causes mood swings, eating disorders, triggere...	1
+403	2005	2469	dota 2	2014.0	Nice game, I think this game better than LOL, ...	1
+404	2006	2470	dota 2	2014.0	If you enjoy dedicating your life to this game...	1
+203 rows × 6 columns
+
+In [23]:
+games = list(df["name"].unique())
+top50_reviews2 = reviews_raw2[reviews_raw2["name"].isin(games)].reset_index()
+
+top50_reviews2["review"] = top50_reviews2["review"].astype(str)
+test2 = top50_reviews2[top50_reviews2["name"] == "brawlhalla" ]
+test2 = test2[test2["recommendation"] == 1]
+test3 = " ".join(test2["review"])
+
+
+wordcloud = WordCloud().generate(test3)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.show()
+test2
+
+Out[23]:
+index	review_id	name	year	review	recommendation
+2461	4936	6861	brawlhalla	2016.0	Early Access ReviewThis game is super fun, you...	1
+2464	4939	6864	brawlhalla	2015.0	Early Access ReviewEARLY ACCESS REVIEWPros:-Fr...	1
+2465	4940	6865	brawlhalla	2017.0	Early Access ReviewI have played this game for...	1
+2466	4941	6866	brawlhalla	2017.0	First things first !I purcahsed the Collectors...	1
+2468	4943	6868	brawlhalla	2017.0	Pros:- pretty fast paced, there is a lot of di...	1
+...	...	...	...	...	...	...
+2866	5341	7266	brawlhalla	2016.0	Early Access ReviewThere's a bit of a learning...	1
+2867	5342	7267	brawlhalla	2016.0	Early Access ReviewHonestly, after seeing that...	1
+2868	5343	7268	brawlhalla	2016.0	Early Access ReviewBrawlhalla is a 2d version ...	1
+2869	5344	7269	brawlhalla	2016.0	Early Access Reviewi think this is a Very good...	1
+2870	5345	7270	brawlhalla	2015.0	Early Access ReviewProbably my most favorite g...	1
+355 rows × 6 columns
+
+In [24]:
+games = list(df["name"].unique())
+top50_reviews = reviews_raw[reviews_raw["name"].isin(games)].reset_index()
+top50_reviews["review"] = top50_reviews["review"].astype(str)
+test5 = top50_reviews[top50_reviews["name"] == "grand theft auto v" ]
+test5 = test5[test5["recommendation"] == "Recommended"]
+test6 = " ".join(test5["review"])
+
+
+wordcloud = WordCloud().generate(test6)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.show()
+
+test5
+
+Out[24]:
+index	date_posted	funny	helpful	hour_played	is_early_access_review	recommendation	review	name
+41767	113546	2015-04-26	3	5	438	False	Recommended	best Rockstar optimization so farI couldn't st...	grand theft auto v
+41777	113556	2015-08-09	0	0	1775	False	Recommended	It's good.	grand theft auto v
+41784	113563	2018-01-19	3	5	119	False	Recommended	Best game in the world!	grand theft auto v
+41789	113568	2017-06-27	1	10	143	False	Recommended	Open IV is back stop the hate	grand theft auto v
+41830	113609	2015-06-25	1	5	73	False	Recommended	GTA V Overview &amp Impressions by Irishlad147...	grand theft auto v
+...	...	...	...	...	...	...	...	...	...
+141716	213495	2019-02-15	0	0	747	False	Recommended	It will be great if this game have no modder m...	grand theft auto v
+141717	213496	2019-02-15	0	0	104	False	Recommended	good game	grand theft auto v
+141719	213498	2019-02-16	0	0	301	False	Recommended	OnlineI mostly play GTA Online and I am always...	grand theft auto v
+141720	213499	2018-11-22	0	0	125	False	Recommended	10 / 10 Will going to Buy Shark Cards again	grand theft auto v
+141721	213500	2019-02-16	0	0	36	False	Recommended	Games gud	grand theft auto v
+58989 rows × 9 columns
+
+Zac (OS)
+In [25]:
+# convert NaN to list
+data['OS'] = data['OS'].fillna("").apply(list) 
+
+
+def clean_os(os):
+    
+    # list of keywords for windows, linux and mac
+    windows = ["window", "win"]
+    linux = ["linux", "ubuntu", "steamos", "fedora"]
+    mac = ["mac", "os x", "osx", "os10.", "os 10.", "sierra", "maverick", "OS:,10."]
+    
+    temp = []
+    for item in os: 
+        
+        # if any keywords in windows/linux/mac list in text, return Windows/Linux/Mac
+        
+        if any(txt in item.lower() for txt in windows):
+            temp.append("Windows")
+        if any(txt in item.lower() for txt in linux):
+            temp.append("Linux")
+        if any(txt in item.lower() for txt in mac):
+            temp.append("Mac")
+    
+    # Return as list
+    return temp 
+        
+
+# add new "Cleaned_OS" column at the end of dataset "data"
+data['Cleaned_OS'] = data.apply(lambda x: clean_os(x['OS']),axis=1)
+# adding a new "revenue_count_sales" to assist with the data manipulation 
+data['review_count_sales'] = data.apply(lambda x: (x['review_count']*36),axis=1)
+data
+Out[25]:
+APPID	name	release_date	developer	review_count	OS	release_year	publisher	popular_tags	game_details	...	Month	Year	Hours_watched	Hours_Streamed	Peak_viewers	Peak_channels	Avg_viewers	Avg_channels	Cleaned_OS	review_count_sales
+0	730	counter-strike: global offensive	Aug 21, 2012	Valve,Hidden Path Entertainment	3094223	[]	2012	Valve,Valve	[FPS, Shooter, Multiplayer, Competitive, Actio...	[Multi-player, Steam Achievements, Full contro...	...	1	2016	47832863	830105	372654	2197	64378	1117	[]	111392028
+1	570	dota 2	Jul 9, 2013	Valve	1015621	[]	2013	Valve,Valve	[Free to Play, MOBA, Multiplayer, Strategy, e-...	[Multi-player, Co-op, Steam Trading Cards, Ste...	...	1	2016	45185893	433397	315083	1100	60815	583	[]	36562356
+2	271590	grand theft auto v	Apr 14, 2015	Rockstar North	407706	[OS:,Windows 10 64 Bit]	2015	Rockstar Games,Rockstar Games	[Open World, Action, Multiplayer, Third Person...	[Single-player, Multi-player, Steam Achievemen...	...	1	2016	4014296	407172	32724	1197	5402	548	[Windows]	14677416
+3	107410	arma 3	Sep 12, 2013	Bohemia Interactive	81705	[OS:,Windows 7 / 8 / 10 (64bit)]	2013	Bohemia Interactive,Bohemia Interactive	[Military, Simulation, Multiplayer, Realistic,...	[Single-player, Multi-player, Online Multi-Pla...	...	1	2016	2542838	86219	32132	275	3422	116	[Windows]	2941380
+4	221100	dayz	Dec 13, 2018	Bohemia Interactive	167115	[OS:,Windows 10 64-bit]	2018	Bohemia Interactive,Bohemia Interactive	[Survival, Zombies, Open World, Multiplayer, P...	[Multi-player, Online Multi-Player, Steam Work...	...	1	2016	2321012	71715	30208	208	3123	96	[Windows]	6016140
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+4951	976730	halo: the master chief collection	Coming Soon	343 Industries,Splash Damage,Ruffian Games	NaN	[]	incomplete_data	Xbox Game Studios,Xbox Game Studios	[Masterpiece, Great Soundtrack, FPS, Classic, ...	[Single-player, Online Multi-Player, Online Co...	...	9	2021	802745	108974	8919	382	1116	151	[]	NaN
+4952	242760	the forest	Apr 30, 2018	Endnight Games Ltd	101595	[OS:,Windows 7]	2018	Endnight Games Ltd,Endnight Games Ltd	[Survival, Open World, Horror, Crafting, Adven...	[Single-player, Multi-player, Co-op, Partial C...	...	9	2021	746891	64193	22736	188	1038	89	[Windows]	3657420
+4953	761890	albion online	Jul 17, 2017	Sandbox Interactive GmbH	4745	[OS:,Windows 10 (64-bit), OS:,Mac OS X 10.7 or...	2017	Sandbox Interactive GmbH,Sandbox Interactive GmbH	[Massively Multiplayer, MMORPG, Free to Play, ...	[Online Multi-Player, MMO, Cross-Platform Mult...	...	9	2021	745192	35062	22243	87	1036	48	[Windows, Mac, Linux]	170820
+4954	236390	war thunder	Aug 15, 2013	Gaijin Entertainment	107537	[OS:,Windows 7 64bit /Vista 64bit /8 64bit /10...	2013	Gaijin Entertainment,Gaijin Entertainment	[Free to Play, World War II, Multiplayer, Simu...	[Single-player, MMO, Co-op, Cross-Platform Mul...	...	9	2021	723003	75333	8659	225	1005	104	[Windows, Mac, Linux]	3871332
+4955	4000	garry's mod	Nov 29, 2006	Facepunch Studios	310394	[OS:,Windows® 7/8/8.1/10, OS:,Latest OS X vers...	2006	Valve,Valve	[Sandbox, Multiplayer, Funny, Moddable, Buildi...	[Single-player, Multi-player, Co-op, Cross-Pla...	...	9	2021	712712	17637	88018	80	991	24	[Windows, Mac, Linux]	11174184
+4956 rows × 26 columns
+
+In [26]:
+df = pd.merge(data, user_raw, on = ['APPID','Date'])
+
+# re-ordering columns
+df = df.drop(columns = ["Game_Name", "URL","Month_Year"])
+cols = list(df.columns)
+#cols = cols[:-5] + cols[2:3] + cols[-5:]
+df = df[cols]
+
+# splitting by year
+df_2016 = df[df["Year"] == 2016].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2017 = df[df["Year"] == 2017].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2018 = df[df["Year"] == 2018].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2019 = df[df["Year"] == 2019].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2020 = df[df["Year"] == 2020].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+df_2021 = df[df["Year"] == 2021].sort_values(["Month","Rank"],ascending = True).reset_index(drop=True)
+
+# 50 of the top 100 played games are also streaming on twitch.
+# We will be using these 50 games for analysis
+
+#df_2017
+#df_2017[listcontains(df_2017,"languages","German")]
+#df[listcontains(df,"popular_tags","FPS")]
+#df[listcontains(df,"game_details","Online")]
+#df[listcontains(df,"genre","Indie")]
+#nat_data_frame = df["mature_content"]== True
+#df[nat_data_frame]
+
+df.sort_values(["APPID","Date"],ascending = True).iloc[:,12:]
+Out[26]:
+genre	Date	mature_content	Rank	Month	Year	Hours_watched	Hours_Streamed	Peak_viewers	Peak_channels	Avg_viewers	Avg_channels	Cleaned_OS	review_count_sales	Avg_players	Gain	Percent_Gain	Peak_Players
+13	[Action, Free to Play]	2016-01	True	103	1	2016	329765	25296	32609	86	443	34	[Windows]	19924488	52763.52	-209.42	-0.40%	80583
+33	[Action, Free to Play]	2016-02	True	101	2	2016	270708	23017	7883	88	389	33	[Windows]	19924488	52864.72	101.19	+0.19%	83544
+54	[Action, Free to Play]	2016-03	True	81	3	2016	384852	25859	2995	88	517	34	[Windows]	19924488	52754.37	-110.34	-0.21%	83425
+76	[Action, Free to Play]	2016-04	True	69	4	2016	510682	29726	7238	103	710	41	[Windows]	19924488	51434.75	-1319.62	-2.50%	81206
+99	[Action, Free to Play]	2016-05	True	65	5	2016	438525	25541	31233	84	590	34	[Windows]	19924488	49804.41	-1630.34	-3.17%	77972
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+1842	[Casual, Indie, Massively Multiplayer, Sports]	2021-05	False	64	5	2021	3615617	173292	63384	492	4866	233	[]	NaN	7111.46	-1550.61	-17.90%	11886
+1866	[Casual, Indie, Massively Multiplayer, Sports]	2021-06	False	59	6	2021	3884765	135103	69332	385	5403	187	[]	NaN	6601.58	-509.88	-7.17%	13775
+1895	[Casual, Indie, Massively Multiplayer, Sports]	2021-07	False	48	7	2021	4854240	185383	118760	748	6533	249	[]	NaN	9680.71	3079.14	+46.64%	18225
+1917	[Casual, Indie, Massively Multiplayer, Sports]	2021-08	False	29	8	2021	10516692	225943	231028	586	14154	304	[]	NaN	10614.78	934.07	+9.65%	18976
+1945	[Casual, Indie, Massively Multiplayer, Sports]	2021-09	False	43	9	2021	5697224	181512	121838	505	7923	252	[]	NaN	10915.20	300.42	+2.83%	27277
+1966 rows × 18 columns
+
+In [27]:
+subset_zac = df[['Year','Cleaned_OS','Avg_players']]
+subset_zac = subset_zac.explode('Cleaned_OS').reset_index(drop=True)  #Explode to access indic genre
+#subset_zac['year'] = subset_zac['Date'].str[0:4].astype(int) #not sure what this is are you trying to find year without using year
+subset_zac
+Out[27]:
+Year	Cleaned_OS	Avg_players
+0	2016	NaN	365371.09
+1	2016	NaN	612174.78
+2	2016	Windows	46993.33
+3	2016	Windows	22559.44
+4	2016	Windows	8329.42
+...	...	...	...
+2900	2021	Mac	25179.81
+2901	2021	Linux	25179.81
+2902	2021	Windows	21523.45
+2903	2021	Mac	21523.45
+2904	2021	Linux	21523.45
+2905 rows × 3 columns
+
+In [28]:
+subset_zac.pivot
+#subset_1.pivot(index = 'Year', columns = "Cleaned_OS", values = 'Avg_players').plot(kind='bar',figsize = (15,8))
+subset_zac_2 = subset_zac.groupby(['Year','Cleaned_OS']).mean().reset_index()
+subset_zac_2
+subset_zac_2.pivot(index = 'Cleaned_OS', columns = "Year", values = 'Avg_players').plot(kind='bar')
+plt.ylabel('Average Number of Players/Month')
+plt.xlabel('Supported OS')
+Out[28]:
+Text(0.5, 0, 'Supported OS')
+
+In [29]:
+subset_zac_2.pivot(index = 'Year', columns = "Cleaned_OS", values = 'Avg_players').plot.area(stacked=True)
+plt.ylabel('Average Number of Players/Month')
+plt.xlabel('Supported OS')
+Out[29]:
+Text(0.5, 0, 'Supported OS')
+
+In [30]:
+subset_zac_2.pivot(index = 'Year', columns = "Cleaned_OS", values = 'Avg_players').plot.area(stacked=False)
+plt.ylabel('Average Number of Players/Month')
+plt.xlabel('Supported OS')
+Out[30]:
+Text(0.5, 0, 'Supported OS')
+
+In [31]:
+data_zac_2 = df
+nan_value = float("NaN")
+data_zac_2.replace("[]", nan_value, inplace=True)
+data_zac_2.dropna(subset=["Cleaned_OS"], inplace = True)
+data_zac_2
+fig, ax = plt.subplots()
+data_zac_2['Cleaned_OS'].value_counts().plot(ax=ax, kind='bar')
+plt.ylabel('Number of Games')
+plt.xlabel('Types of Supported by Each Game')
+Out[31]:
+Text(0.5, 0, 'Types of Supported by Each Game')
+
+In [32]:
+subset_zac_3 = subset_zac_2.sort_values('Avg_players',ascending = False).reset_index()
+subset_zac_3
+subset_zac_3.pivot
+subset_zac_3['Cleaned_OS'].value_counts()
+subset_zac_4 = df[['Year','Cleaned_OS','review_count_sales']]
+subset_zac_4 = subset_zac_4.explode('Cleaned_OS').reset_index(drop=True)  #Explode to access indic genre
+#subset_1['year'] = subset_1['Date'].str[0:4].astype(int) #not sure what this is are you trying to find year without using year
+subset_zac_5 = subset_zac_4.groupby(['Year','Cleaned_OS']).sum().reset_index()
+subset_zac_5
+subset_zac_5.pivot(index = 'Year', columns = "Cleaned_OS", values = 'review_count_sales').plot.area(stacked=True)
+plt.ylabel('Total Sales/Year in billions')
+plt.xlabel('Year')
+Out[32]:
+Text(0.5, 0, 'Year')
+
+Natalie (maturity)
+In [33]:
+#to find all unique genre
+
+all_genre = list(df4['genre'])
+unique_genre = []
+
+for i in all_genre:
+    for u in i:
+        if u in unique_genre:
+            continue
+        else:
+            unique_genre.append(u)
+        
+print(unique_genre)
+['Action', 'Free to Play', 'Strategy', 'Indie', 'Simulation', 'Massively Multiplayer', 'RPG', 'Adventure', 'Early Access', 'Casual', 'Sports']
+In [34]:
+#Create a function to find sales of mature and non-mature games of every genre
+
+def sale_no (x):
+    
+    x_df = df4[listcontains(df4, "genre", x )]
+
+    x_true = x_df['mature_content'] == True
+    x_mature = x_df.loc[x_true]
+    true_sales = x_mature['total_sales'].sum()
+    
+    x_false = x_df['mature_content'] == False
+    x_non_mature = x_df.loc[x_false]
+    false_sales = x_non_mature['total_sales'].sum()
+        
+    return true_sales,false_sales
+In [35]:
+#Unpack the sales tuple into a list of mature sales and a list of non-mature sales
+
+final_list = []
+
+for i in unique_genre:
+    genre_sales = sale_no(i)
+    if genre_sales in unique_genre:
+        continue
+    else:
+        final_list.append(genre_sales)
+        
+m_list = [m for m, nm in (final_list)]
+nm_list = [nm for m, nm in (final_list)]
+In [36]:
+#create a dictionary of the sales for graph plotting
+
+sales_dict = {'Genre': unique_genre,
+              'Mature': m_list,
+              'Non-mature': nm_list,}
+In [37]:
+#graph plotting
+
+genre = sales_dict['Genre']
+mature = sales_dict['Mature']
+non_mature = sales_dict['Non-mature']
+
+x = np.arange(len(genre))                 
+width = 0.3                                 
+
+plt.figure(figsize=(25, 10))
+plt.bar(x-0.5*width, mature, 
+        color='r', width=width, alpha=0.6,
+        label='Mature')                     
+plt.bar(x+0.5*width, non_mature, 
+        color='b', width=width, alpha=0.6,
+        label='Non-mature')                     
+
+plt.legend(fontsize=13)
+plt.xticks(x, genre, fontsize=13)    
+plt.ylabel('Sales', fontsize=13)
+plt.show()
+
+Keynes (genre comparison)
+In [38]:
+subset_ky = data[['APPID','Date','name','genre','Hours_Streamed','Hours_watched','mature_content']]
+subset_ky = subset_ky.explode('genre').reset_index(drop=True)  #Explode to access indiv genre
+subset_ky['year'] = subset_ky['Date'].str[0:4].astype(int)
+subset_ky
+Out[38]:
+APPID	Date	name	genre	Hours_Streamed	Hours_watched	mature_content	year
+0	730	2016-01	counter-strike: global offensive	Action	830105	47832863	True	2016
+1	730	2016-01	counter-strike: global offensive	Free to Play	830105	47832863	True	2016
+2	570	2016-01	dota 2	Action	433397	45185893	False	2016
+3	570	2016-01	dota 2	Free to Play	433397	45185893	False	2016
+4	570	2016-01	dota 2	Strategy	433397	45185893	False	2016
+...	...	...	...	...	...	...	...	...
+14313	236390	2021-09	war thunder	Free to Play	75333	723003	False	2021
+14314	236390	2021-09	war thunder	Massively Multiplayer	75333	723003	False	2021
+14315	236390	2021-09	war thunder	Simulation	75333	723003	False	2021
+14316	4000	2021-09	garry's mod	Indie	17637	712712	False	2021
+14317	4000	2021-09	garry's mod	Simulation	17637	712712	False	2021
+14318 rows × 8 columns
+
+In [39]:
+subset_2_ky = subset_ky.groupby(['genre']).sum().reset_index()
+subset_2_ky
+Out[39]:
+genre	APPID	Hours_Streamed	Hours_watched	mature_content	year
+0	Action	1113795417	398818522	15191039994	919	5866941
+1	Adventure	723321994	221567113	7480876823	486	3499672
+2	Casual	245165491	25190734	1079150992	20	968772
+3	Early Access	292973840	19527908	542116945	90	1083871
+4	Free to Play	368746060	137485342	7081676487	315	2060598
+5	Indie	757090562	84469270	2507838167	326	3862775
+6	Massively Multiplayer	462304970	141217476	3977904986	266	2407944
+7	RPG	462114123	88766236	2330543463	283	2841453
+8	Racing	30624900	2697180	62277338	16	177631
+9	Simulation	588804938	62019489	1361617192	82	3059631
+10	Sports	162346590	22121124	570521209	2	656008
+11	Strategy	470270637	62651387	3792739458	66	2411636
+In [40]:
+ss2_ky = subset_2_ky.sort_values('Hours_Streamed',ascending = False).reset_index()
+
+plt.figure(figsize=(7,4))
+plt.bar(ss2_ky['genre'],ss2_ky['Hours_Streamed'])
+plt.title('Total Hours Streamed from 2016-2021 by genre',fontweight="bold")
+plt.ylabel('Hours Streamed',size=15)
+plt.xlabel('Genre',size=15)
+plt.xticks(size=8,rotation=45)
+Out[40]:
+([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+ [Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, '')])
+
+In [41]:
+ss3_ky = subset_2_ky.sort_values('Hours_watched',ascending = False).reset_index()
+
+plt.figure(figsize=(7,4))
+plt.bar(ss3_ky['genre'],ss3_ky['Hours_watched'])
+plt.title('Total Hours watched from 2016-2021 by genre',fontweight="bold")
+plt.ylabel('Hours watched',size=15)
+plt.xlabel('Genre',size=15)
+plt.xticks(size=8,rotation=45)
+Out[41]:
+([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+ [Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, '')])
+
+Hours viewed by genre
+stack plot to show the changes in twitch streams/views from 2016-2021
+In [42]:
+subset_2_ky = subset_ky.groupby(['year','genre'],as_index=False).sum()
+subset_2_ky
+Out[42]:
+year	genre	APPID	Hours_Streamed	Hours_watched	mature_content
+0	2016	Action	140886896	28979614	1433643942	149
+1	2016	Adventure	100149973	11070022	214549254	80
+2	2016	Casual	27594410	524240	18082586	2
+3	2016	Early Access	29479450	955188	20781236	4
+4	2016	Free to Play	54161020	15284021	1097489121	57
+...	...	...	...	...	...	...
+67	2021	RPG	43874510	20391316	743210624	27
+68	2021	Racing	4965590	875780	21375814	1
+69	2021	Simulation	54248690	11905453	255574000	7
+70	2021	Sports	22204900	4142908	108492110	0
+71	2021	Strategy	46330141	10747145	549258669	6
+72 rows × 6 columns
+
+In [43]:
+action_ky = subset_2_ky.loc[subset_2_ky['genre']=='Action','Hours_Streamed']
+
+df7 = {}
+for genre in subset_ky['genre'].unique():
+    stream_by_year = subset_2_ky.loc[subset_2_ky['genre']==genre,'Hours_Streamed']
+    df7[genre] = stream_by_year
+In [44]:
+plt.figure(figsize=(8,5))
+
+plt.stackplot(subset_2_ky['year'].unique(),df7.values(),labels=df7.keys())
+plt.title('Hours Streamed over the years',size = 15,fontweight="bold")
+plt.xlabel('Year',size = 15)
+plt.ylabel('Hours Streamed',size = 15)
+plt.legend(loc='upper left')
+Out[44]:
+<matplotlib.legend.Legend at 0x7ff59c4df070>
+
+In [45]:
+## Hours Watched
+
+action_2 = subset_2_ky.loc[subset_2_ky['genre']=='Action','Hours_watched']
+
+df_2 = {}
+for genre in subset_ky['genre'].unique():
+    stream_by_year_2 = subset_2_ky.loc[subset_2_ky['genre']==genre,'Hours_watched']
+    df_2[genre] = stream_by_year_2
+    
+plt.figure(figsize=(8,5))
+plt.stackplot(subset_2_ky['year'].unique(),df_2.values(),labels=df_2.keys())
+plt.title('Hours Watched over the years',size = 15,fontweight="bold")
+plt.xlabel('Year',size = 15)
+plt.ylabel('Hours Watched',size = 15)
+plt.legend(loc='upper left')
+Out[45]:
+<matplotlib.legend.Legend at 0x7ff5960aa070>
+
+In [46]:
+subset_2 = subset_ky.groupby(['year','genre'],as_index=False).sum()
+#Recreating a DF for top 5 games + others
+subset_2016 = subset_2[subset_2['year']==2016].sort_values('Hours_Streamed',ascending=False,ignore_index=True)
+
+subset_2016.loc[0:4,:]
+set_2016 = {'2016' : subset_2016.loc[0,'Hours_Streamed']
+}
+set_2016
+subset_2
+#Columns: Year, Action, Free to play, Adventure, Massively Multiplayer
+Out[46]:
+year	genre	APPID	Hours_Streamed	Hours_watched	mature_content
+0	2016	Action	140886896	28979614	1433643942	149
+1	2016	Adventure	100149973	11070022	214549254	80
+2	2016	Casual	27594410	524240	18082586	2
+3	2016	Early Access	29479450	955188	20781236	4
+4	2016	Free to Play	54161020	15284021	1097489121	57
+...	...	...	...	...	...	...
+67	2021	RPG	43874510	20391316	743210624	27
+68	2021	Racing	4965590	875780	21375814	1
+69	2021	Simulation	54248690	11905453	255574000	7
+70	2021	Sports	22204900	4142908	108492110	0
+71	2021	Strategy	46330141	10747145	549258669	6
+72 rows × 6 columns
+
+In [47]:
+subset_3_ky = subset_ky.groupby(['year','genre'],as_index=False).sum()
+subset_3_ky
+Out[47]:
+year	genre	APPID	Hours_Streamed	Hours_watched	mature_content
+0	2016	Action	140886896	28979614	1433643942	149
+1	2016	Adventure	100149973	11070022	214549254	80
+2	2016	Casual	27594410	524240	18082586	2
+3	2016	Early Access	29479450	955188	20781236	4
+4	2016	Free to Play	54161020	15284021	1097489121	57
+...	...	...	...	...	...	...
+67	2021	RPG	43874510	20391316	743210624	27
+68	2021	Racing	4965590	875780	21375814	1
+69	2021	Simulation	54248690	11905453	255574000	7
+70	2021	Sports	22204900	4142908	108492110	0
+71	2021	Strategy	46330141	10747145	549258669	6
+72 rows × 6 columns
+
+In [48]:
+subset_3_ky = pd.pivot_table(subset_3_ky,values='Hours_Streamed',index='year',columns='genre')
+subset_3_ky = subset_3_ky.div(subset_3_ky.sum(axis=1),axis=0)
+subset_4_ky = subset_3_ky[['Action','Adventure','Free to Play','Massively Multiplayer']]
+subset_4_ky['Others'] = 1 - subset_4_ky.sum(axis=1)
+subset_4_ky = subset_4_ky.reset_index()
+subset_4_ky
+<ipython-input-48-61ad10824fd5>:4: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+Out[48]:
+genre	year	Action	Adventure	Free to Play	Massively Multiplayer	Others
+0	2016	0.319076	0.121885	0.168283	0.057635	0.333122
+1	2017	0.316001	0.192241	0.102577	0.140889	0.248291
+2	2018	0.309387	0.182386	0.103401	0.135915	0.268911
+3	2019	0.319317	0.173696	0.114037	0.118726	0.274224
+4	2020	0.308277	0.168898	0.102891	0.102594	0.317340
+5	2021	0.321672	0.184691	0.098121	0.096186	0.299331
+In [49]:
+##FOR HOURS STREAMED
+
+subset_4_ky.plot(
+  x = 'year', 
+  kind = 'barh', 
+  stacked = True, 
+  mark_right = True,
+  figsize=(10,4))
+
+plt.title("Proportion Stacked Bar Graph (Streamed)",size=15,fontweight="bold")
+plt.xlabel('Proportion',size=15)
+plt.ylabel('Year',size=15)
+Out[49]:
+Text(0, 0.5, 'Year')
+
+In [50]:
+#Repeat above, but FOR HOURS VIEWED
+
+subset_3_2_ky = pd.pivot_table(subset_2_ky,values='Hours_watched',index='year',columns='genre')
+subset_3_2_ky = subset_3_2_ky.div(subset_3_2_ky.sum(axis=1),axis=0)
+subset_4_2_ky = subset_3_2_ky[['Action','Adventure','Free to Play','Massively Multiplayer']]
+subset_4_2_ky['Others'] = 1 - subset_4_2_ky.sum(axis=1)
+subset_4_2_ky = subset_4_2_ky.reset_index()
+subset_4_2_ky
+<ipython-input-50-069ac90e764b>:6: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+Out[50]:
+genre	year	Action	Adventure	Free to Play	Massively Multiplayer	Others
+0	2016	0.356741	0.053387	0.273094	0.032507	0.284272
+1	2017	0.335890	0.156263	0.163772	0.121255	0.222819
+2	2018	0.320550	0.148142	0.156219	0.107456	0.267633
+3	2019	0.345800	0.172837	0.158416	0.081728	0.241220
+4	2020	0.308048	0.153591	0.143282	0.079966	0.315113
+5	2021	0.335087	0.217686	0.110872	0.082833	0.253523
+In [51]:
+subset_4_2_ky.plot(
+  x = 'year', 
+  kind = 'barh', 
+  stacked = True, 
+  mark_right = True,
+  figsize=(10,4))
+
+plt.title('Proportion Stacked Bar Graph (Viewed)',size=15,fontweight="bold")
+plt.xlabel('Proportion',size=15)
+plt.ylabel('Year',size=15)
+plt.show()
+
+In [52]:
+sub_ky = data[['release_year','name','genre']]
+sub1_ky = sub_ky[sub_ky['release_year'] != 'incomplete_data'].drop_duplicates('name')
+sub2_ky = sub1_ky.explode('genre').reset_index(drop=True)
+
+sub2_ky = sub2_ky.groupby(['release_year','genre']).count().reset_index()
+
+
+sub2_ky['release_year'].value_counts(sort=False)
+sub2_ky[sub2_ky['release_year']==2019]
+Out[52]:
+release_year	genre	name
+116	2019	Action	62
+117	2019	Adventure	41
+118	2019	Casual	12
+119	2019	Early Access	18
+120	2019	Free to Play	4
+121	2019	Indie	53
+122	2019	Massively Multiplayer	12
+123	2019	RPG	24
+124	2019	Racing	2
+125	2019	Simulation	23
+126	2019	Sports	2
+127	2019	Strategy	26
+In [53]:
+## need to add zero values for sports. if not graph looks disjointed.
+In [54]:
+def plot_ky(genre):
+    sub_set = sub2_ky[sub2_ky['genre']==genre]
+    sub_set = sub_set[sub_set['release_year'] != 2020] #drop 2020 games because data set incomplete.
+    plt.plot(sub_set['release_year'],sub_set['name'],label=genre)
+    plt.xlabel('Year',size=15)
+    plt.ylabel('Games Produced',size=15)
+    plt.title('PC Game production over the years',fontweight="bold",size=15)
+    plt.grid()
+    plt.legend()
+In [57]:
+plt.figure(figsize=(8,5))
+
+plot_ky('Action')
+plot_ky('Adventure')
+plot_ky('Sports')
+plot_ky('Free to Play')
+plot_ky('Massively Multiplayer')
+
+In [58]:
+subset_ky = data[['APPID','Date','name','genre','Hours_Streamed','Hours_watched','mature_content']]
+subset_ky = subset_ky.explode('genre').reset_index(drop=True)  #Explode to access indiv genre
+subset_ky['year'] = subset_ky['Date'].str[0:4].astype(int)
+subset_ky
+Out[58]:
+APPID	Date	name	genre	Hours_Streamed	Hours_watched	mature_content	year
+0	730	2016-01	counter-strike: global offensive	Action	830105	47832863	True	2016
+1	730	2016-01	counter-strike: global offensive	Free to Play	830105	47832863	True	2016
+2	570	2016-01	dota 2	Action	433397	45185893	False	2016
+3	570	2016-01	dota 2	Free to Play	433397	45185893	False	2016
+4	570	2016-01	dota 2	Strategy	433397	45185893	False	2016
+...	...	...	...	...	...	...	...	...
+14313	236390	2021-09	war thunder	Free to Play	75333	723003	False	2021
+14314	236390	2021-09	war thunder	Massively Multiplayer	75333	723003	False	2021
+14315	236390	2021-09	war thunder	Simulation	75333	723003	False	2021
+14316	4000	2021-09	garry's mod	Indie	17637	712712	False	2021
+14317	4000	2021-09	garry's mod	Simulation	17637	712712	False	2021
+14318 rows × 8 columns
+
+In [59]:
+subset_2_ky = subset_ky.groupby(['genre']).sum().reset_index()
+subset_2_ky
+Out[59]:
+genre	APPID	Hours_Streamed	Hours_watched	mature_content	year
+0	Action	1113795417	398818522	15191039994	919	5866941
+1	Adventure	723321994	221567113	7480876823	486	3499672
+2	Casual	245165491	25190734	1079150992	20	968772
+3	Early Access	292973840	19527908	542116945	90	1083871
+4	Free to Play	368746060	137485342	7081676487	315	2060598
+5	Indie	757090562	84469270	2507838167	326	3862775
+6	Massively Multiplayer	462304970	141217476	3977904986	266	2407944
+7	RPG	462114123	88766236	2330543463	283	2841453
+8	Racing	30624900	2697180	62277338	16	177631
+9	Simulation	588804938	62019489	1361617192	82	3059631
+10	Sports	162346590	22121124	570521209	2	656008
+11	Strategy	470270637	62651387	3792739458	66	2411636
+In [60]:
+ss2_ky = subset_2_ky.sort_values('Hours_Streamed',ascending = False).reset_index()
+
+plt.figure(figsize=(7,4))
+plt.bar(ss2_ky['genre'],ss2_ky['Hours_Streamed'])
+plt.title('Total Hours Streamed from 2016-2021 by genre',fontweight="bold")
+plt.ylabel('Hours Streamed',size=15)
+plt.xlabel('Genre',size=15)
+plt.xticks(size=8,rotation=45)
+Out[60]:
+([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+ [Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, '')])
+
+In [61]:
+ss3_ky = subset_2_ky.sort_values('Hours_watched',ascending = False).reset_index()
+
+plt.figure(figsize=(7,4))
+plt.bar(ss3_ky['genre'],ss3_ky['Hours_watched'])
+plt.title('Total Hours watched from 2016-2021 by genre',fontweight="bold")
+plt.ylabel('Hours watched',size=15)
+plt.xlabel('Genre',size=15)
+plt.xticks(size=8,rotation=45)
+Out[61]:
+([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+ [Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, ''),
+  Text(0, 0, '')])
+
+In [62]:
+subset_2_ky = subset_ky.groupby(['year','genre'],as_index=False).sum()
+action_ky = subset_2_ky.loc[subset_2_ky['genre']=='Action','Hours_Streamed']
+
+df = {}
+for genre in subset_ky['genre'].unique():
+    stream_by_year = subset_2_ky.loc[subset_2_ky['genre']==genre,'Hours_Streamed']
+    df[genre] = stream_by_year
+
+
+plt.figure(figsize=(8,5))
+
+plt.stackplot(subset_2_ky['year'].unique(),df.values(),labels=df.keys())
+plt.title('Hours Streamed over the years',size = 15,fontweight="bold")
+plt.xlabel('Year',size = 15)
+plt.ylabel('Hours Streamed',size = 15)
+plt.legend(loc='upper left')
+Out[62]:
+<matplotlib.legend.Legend at 0x7ff59c4ca2e0>
+
+In [63]:
+## Hours Watched
+
+action_2 = subset_2_ky.loc[subset_2_ky['genre']=='Action','Hours_watched']
+
+df_2 = {}
+for genre in subset_ky['genre'].unique():
+    stream_by_year_2 = subset_2_ky.loc[subset_2_ky['genre']==genre,'Hours_watched']
+    df_2[genre] = stream_by_year_2
+    
+plt.figure(figsize=(8,5))
+plt.stackplot(subset_2_ky['year'].unique(),df_2.values(),labels=df_2.keys())
+plt.title('Hours Watched over the years',size = 15,fontweight="bold")
+plt.xlabel('Year',size = 15)
+plt.ylabel('Hours Watched',size = 15)
+plt.legend(loc='upper left')
+Out[63]:
+<matplotlib.legend.Legend at 0x7ff5b306bd90>
+
+In [64]:
+subset_2 = subset_ky.groupby(['year','genre'],as_index=False).sum()
+#Recreating a DF for top 5 games + others
+subset_2016 = subset_2[subset_2['year']==2016].sort_values('Hours_Streamed',ascending=False,ignore_index=True)
+
+subset_2016.loc[0:4,:]
+set_2016 = {'2016' : subset_2016.loc[0,'Hours_Streamed']
+}
+set_2016
+subset_2
+#Columns: Year, Action, Free to play, Adventure, Massively Multiplayer
+
+subset_3_ky = subset_ky.groupby(['year','genre'],as_index=False).sum()
+subset_3_ky
+
+subset_3_ky = pd.pivot_table(subset_3_ky,values='Hours_Streamed',index='year',columns='genre')
+subset_3_ky = subset_3_ky.div(subset_3_ky.sum(axis=1),axis=0)
+subset_4_ky = subset_3_ky[['Action','Adventure','Free to Play','Massively Multiplayer']]
+subset_4_ky['Others'] = 1 - subset_4_ky.sum(axis=1)
+subset_4_ky = subset_4_ky.reset_index()
+##FOR HOURS STREAMED
+
+subset_4_ky.plot(
+  x = 'year', 
+  kind = 'barh', 
+  stacked = True, 
+  mark_right = True,
+  figsize=(10,4))
+
+plt.title("Proportion Stacked Bar Graph (Streamed)",size=15,fontweight="bold")
+plt.xlabel('Proportion',size=15)
+plt.ylabel('Year',size=15)
+
+
+ 
+<ipython-input-64-328a2a4e1afd>:18: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+Out[64]:
+Text(0, 0.5, 'Year')
+
+In [65]:
+subset_3_2_ky = pd.pivot_table(subset_2_ky,values='Hours_watched',index='year',columns='genre')
+subset_3_2_ky = subset_3_2_ky.div(subset_3_2_ky.sum(axis=1),axis=0)
+subset_4_2_ky = subset_3_2_ky[['Action','Adventure','Free to Play','Massively Multiplayer']]
+subset_4_2_ky['Others'] = 1 - subset_4_2_ky.sum(axis=1)
+subset_4_2_ky = subset_4_2_ky.reset_index()
+subset_4_2_ky.plot(
+  x = 'year', 
+  kind = 'barh', 
+  stacked = True, 
+  mark_right = True,
+  figsize=(10,4))
+
+plt.title('Proportion Stacked Bar Graph (Viewed)',size=15,fontweight="bold")
+plt.xlabel('Proportion',size=15)
+plt.ylabel('Year',size=15)
+plt.show()
+<ipython-input-65-49a1bed5903f>:4: SettingWithCopyWarning:
+
+
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+
+In [66]:
+sub_ky = data[['release_year','name','genre']]
+sub1_ky = sub_ky[sub_ky['release_year'] != 'incomplete_data'].drop_duplicates('name')
+sub2_ky = sub1_ky.explode('genre').reset_index(drop=True)
+
+sub2_ky = sub2_ky.groupby(['release_year','genre']).count().reset_index()
+
+
+sub2_ky['release_year'].value_counts(sort=False)
+sub2_ky[sub2_ky['release_year']==2019]
+
+
+def plot_ky(genre):
+    sub_set = sub2_ky[sub2_ky['genre']==genre]
+    sub_set = sub_set[sub_set['release_year'] != 2020] #drop 2020 games because data set incomplete.
+    plt.plot(sub_set['release_year'],sub_set['name'],label=genre)
+    plt.xlabel('Year',size=15)
+    plt.ylabel('Games Produced',size=15)
+    plt.title('PC Game production over the years',fontweight="bold",size=15)
+    plt.grid()
+    plt.legend()
+
+plt.figure(figsize=(8,5))
+
+plot_ky('Action')
+plot_ky('Adventure')
+plot_ky('Sports')
+plot_ky('Free to Play')
+plot_ky('Massively Multiplayer')
+
+CONSOLE DATASET
+In [ ]:
+ 
+In [ ]:
+ 
+In [67]:
+import pandas as pd
+import numpy as np
+import numpy.random as rd
+import matplotlib.pyplot as plt
+from scipy.stats import t
+
+sales_raw = pd.read_csv('sales.csv')
+sales = sales_raw[sales_raw['Year'] != 'Adventure']  #Cleaning Data.Removing 2 data rows that were wrongly input. 
+
+#Cleaning of data + using only necessary variables. Data 2 removes years with NA
+sales2 = sales.loc[:,['Name','Year','Genre']].dropna()
+sales2['Year'] = sales2['Year'].astype(int) #Converting from string to integer (for xticks to flow properly)
+sales2 = sales2[sales['Year'] != 2017] #Drop 2017
+
+def demand_genre(genre):
+    sales_subset = sales2.loc[sales2['Genre'] == genre]
+    x = np.sort(sales_subset['Year'].unique())
+    count = sales_subset['Year'].value_counts().sort_index()
+   
+    plt.plot(x,count,label=genre)
+    plt.xlabel('Year')
+    plt.xticks(np.arange(1980,2020,5))
+    plt.ylabel('Number of games produced')
+    plt.legend()
+    plt.title('Console game production over the years',fontweight="bold")
+    plt.grid()
+    
+
+    
+    
+#act = data2[data2['Genre']=='Action']
+#act.groupby('Year').sum()
+#data2
+#data2[data2['Year'] != 2017]
+<ipython-input-67-f4965c24608e>:13: UserWarning:
+
+Boolean Series key will be reindexed to match DataFrame index.
+
+In [68]:
+#plt.figure(figsize=(10,7))
+plt.figure(figsize=(8,5))
+
+
+demand_genre('Action')
+demand_genre('Adventure')
+demand_genre('Sports')
+
+In [69]:
+sales3 = sales.loc[:,['Name','Genre','NA_Sales','EU_Sales','JP_Sales']].dropna()  #Accessing and cleaning subset.
+sales3
+Out[69]:
+Name	Genre	NA_Sales	EU_Sales	JP_Sales
+0	Wii Sports	Sports	41.49	29.02	3.77
+1	Super Mario Bros.	Platform	29.08	3.58	6.81
+2	Mario Kart Wii	Racing	15.85	12.88	3.79
+3	Wii Sports Resort	Sports	15.75	11.01	3.28
+4	Pokemon Red/Pokemon Blue	Role-Playing	11.27	8.89	10.22
+...	...	...	...	...	...
+16593	Woody Woodpecker in Crazy Castle 5	Platform	0.01	0.00	0.00
+16594	Men in Black II: Alien Escape	Shooter	0.01	0.00	0.00
+16595	SCORE International Baja 1000: The Official Game	Racing	0.00	0.00	0.00
+16596	Know How 2	Puzzle	0.00	0.01	0.00
+16597	Spirits & Spells	Platform	0.01	0.00	0.00
+16596 rows × 5 columns
+
+In [70]:
+summary = sales3.groupby('Genre').sum()   #Summary table for sales per genre
+summary
+Out[70]:
+NA_Sales	EU_Sales	JP_Sales
+Genre			
+Action	875.45	521.68	159.95
+Adventure	105.53	63.25	51.95
+Fighting	222.39	101.12	87.35
+Misc	408.44	215.48	107.76
+Platform	445.59	200.37	130.77
+Puzzle	122.70	49.83	57.31
+Racing	358.72	237.97	56.90
+Role-Playing	326.41	187.18	352.31
+Shooter	581.65	312.12	38.28
+Simulation	181.52	112.61	63.70
+Sports	680.92	376.41	135.60
+Strategy	68.70	44.47	49.46
+In [71]:
+sales_genre = np.sort(sales3['Genre'].unique()) #Creating list for genre. To be used for graph axis
+In [72]:
+genre = np.sort(sales3['Genre'].unique()) #Creating list for genre. To be used for graph axisNA_sum = summary['NA_Sales'].sum())
+x =np.arange(len(genre))
+width = 0.3
+height = 0.3
+plt.figure(figsize=(7,10))
+
+NA_sum = summary['NA_Sales'].sum()
+NA_percentage = summary['NA_Sales'] / NA_sum
+plt.barh(x-width,NA_percentage,height=height,label='NA')
+
+EU_sum = summary['EU_Sales'].sum()
+EU_percentage = summary['EU_Sales'] / EU_sum
+plt.barh(x,EU_percentage,height=height,label='EU')
+
+JP_sum = summary['JP_Sales'].sum()
+JP_percentage = summary['JP_Sales'] / JP_sum
+plt.barh(x+width,JP_percentage,height=height,label='JP')
+
+
+plt.ylabel('Genre',size=15)
+plt.yticks(x,genre)
+plt.xlabel('Proportion',size=15)
+plt.title('Proportion of Sales by Genre',size = 15)
+plt.legend()
+plt.grid()
+
+In [73]:
+def pie(region):
+    reg_sum = summary[region].sum()
+    reg_percentage = summary[region] / reg_sum
+
+    explode_role = [0,0,0,0,0,0,0,0.2,0,0,0,0]
+    plt.figure(figsize = (5,5))
+    plt.pie(reg_percentage,labels=genre,explode=explode_role,shadow=True,startangle=180,autopct='%1.f%%')
+    plt.title(region,size=15,fontweight="bold")
+   
+pie('JP_Sales')
+pie('NA_Sales')
+pie('EU_Sales')
+
+
+
+In [74]:
+sales4 = sales[['Name','Year','Genre','Global_Sales']].dropna()
+sales4['Year'] = sales4['Year'].astype(int)
+In [75]:
+sales4= sales4.groupby(['Genre','Year']).sum().reset_index()
+In [76]:
+def sales_plot(genre):
+    sub = sales4[sales4['Genre']==genre]
+    year = sub['Year']
+    glob_sales = sub['Global_Sales']
+    
+    plt.plot(year,glob_sales,label=genre)
+    plt.title('Global Sales per year by genre (Console)',fontweight="bold",size=15)
+    plt.xlabel('Year',size=15)
+    plt.ylabel('Global Sales',size=15)
+    plt.legend()
+    plt.grid()
+
+plt.figure(figsize=(10,7))
+plt.grid()
+
+sales_plot('Action')
+sales_plot('Adventure')
+sales_plot('Simulation')
+sales_plot('Strategy')
+
+#sales('Early Access') #not in console dataset
+#sales('Free to Play') #not in console dataset
+#sales('Indie') #not in console dataset
+#sales('Massively Multiplayer') #not in console dataset
+#sales('RPG') #not in console dataset
